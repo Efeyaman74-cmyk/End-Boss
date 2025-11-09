@@ -30,6 +30,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Transformation;
+import org.bukkit.block.Block; // <- WICHTIG: fehlte zuvor!
 
 import java.io.File;
 import java.time.Duration;
@@ -295,10 +296,9 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                 boolean inArena = pl.getWorld().equals(arena.loc.getWorld()) && pl.getLocation().distanceSquared(arena.loc) <= (arena.radius*arena.radius);
                 if (inRange || inArena) bar.addPlayer(pl); else bar.removePlayer(pl);
             }
-            // follow visuals
-            alignDisplays();
+            alignDisplays(); // nur hier aufrufen (keine Rekursion)
         }
-        // keep any visual displays following the boss
+        // Displays folgen lassen (ohne Rekursion!)
         void alignDisplays() {
             if (displays.isEmpty()) return;
             Location base = entity.getLocation();
@@ -311,7 +311,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                 d.teleport(base.clone().add(offX, offY, offZ));
                 i++;
             }
-            // <- hier KEIN rekursiver erneuter Aufruf!
         }
         void remove() { bar.removeAll(); bar.setVisible(false); for (var d: displays) if (d!=null && !d.isDead()) d.remove(); displays.clear(); }
         void flashBar(BarColor c) {
@@ -323,7 +322,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
         void tickAbilities() {
             Player target = nearestPlayer(entity.getLocation(), 18.0);
             if (target == null) return;
-            // rotate abilities per boss id
             switch (def.id) {
                 case "KRAMPUS" -> {
                     ability("SMASH", 6, () -> groundSmash(entity, 6, 3.0));
@@ -372,7 +370,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             run.run();
         }
 
-        // ==== Ability implementations ====
+        // ==== Abilities ====
         void groundSmash(LivingEntity caster, int radius, double power) {
             flashBar(BarColor.RED);
             Location c = caster.getLocation();
@@ -404,11 +402,12 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             a.getWorld().playSound(a, Sound.ITEM_CHAIN_BREAK, 1, 0.8f);
             for (double t=0; t<=a.distance(b); t+=0.6) {
                 Location p = a.clone().add(dir.clone().multiply(t));
-                a.getWorld().spawnParticle(Particle.CRIT_MAGIC, p, 4, 0.03,0.03,0.03, 0.01);
+                // ALT: Particle.CRIT_MAGIC (1.21.x entfernt) -> NEU:
+                a.getWorld().spawnParticle(Particle.ENCHANTMENT_TABLE, p, 4, 0.03,0.03,0.03, 0.01);
             }
             Vector pull = caster.getLocation().toVector().subtract(target.getLocation().toVector()).normalize().multiply(speed).setY(0.4);
             target.setVelocity(pull);
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1, true, true, true)); // <- war SLOW
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1, true, true, true));
         }
 
         void blizzard(Location center, int seconds, double radius) {
@@ -428,7 +427,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                         w.spawnParticle(Particle.SNOWFLAKE, new Location(w,x,y,z), 1, 0,0,0, 0);
                     }
                     for (Player p : playersNear(center, radius)) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, true, true, true)); // <- war SLOW
+                        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 2, true, true, true));
                         p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0, true, true, true));
                         p.setFreezeTicks(Math.min(200, p.getFreezeTicks()+10));
                     }
@@ -454,7 +453,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                         w.spawnParticle(Particle.FALLING_WATER, sb.getLocation(), 2, 0.02,0.02,0.02, 0.01);
                         for (Player p : playersNear(sb.getLocation(), 1.3)) {
                             p.damage(3.0, entity);
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1, true,true,true)); // <- war SLOW
+                            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1, true,true,true));
                         }
                     }
                 }.runTaskTimer(WinterEventBosses.this, 1L, 1L);
@@ -479,7 +478,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                 snaps.add(new BlockStateSnapshot(b));
                 b.setType(Material.PACKED_ICE, false);
             }
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 3, true,true,true)); // <- war SLOW
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 3, true,true,true));
             target.setFreezeTicks(Math.min(260, target.getFreezeTicks()+120));
             new BukkitRunnable(){ @Override public void run(){ for (BlockStateSnapshot s : snaps) s.restore(); }}.runTaskLater(WinterEventBosses.this, 60L);
         }
@@ -515,7 +514,8 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             for (Player p : playersNear(c, radius)) {
                 Vector v = p.getLocation().toVector().subtract(c.toVector()).normalize().multiply(1.3).setY(0.6);
                 p.setVelocity(v);
-                p.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 60, 0, true, true, true)); // <- war CONFUSION
+                // ALT: NAUSEA -> NEU: CONFUSION (entspricht Schwindel)
+                p.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 60, 0, true, true, true));
             }
         }
 
