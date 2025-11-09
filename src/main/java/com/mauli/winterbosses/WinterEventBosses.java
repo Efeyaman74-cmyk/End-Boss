@@ -30,6 +30,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.util.Transformation;
+import org.bukkit.block.Block; // <<--- fehlender Import
 
 import java.io.File;
 import java.time.Duration;
@@ -232,7 +233,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             if (le.getEquipment()!=null) le.getEquipment().setChestplate(new ItemStack(Material.ELYTRA));
         }
         if (def.id.equals("ICE_GOLEM")) {
-            // Create 4 ice BlockDisplays to scale up the visual silhouette
             World w = le.getWorld();
             for (int i=0;i<4;i++) {
                 BlockDisplay bd = w.spawn(le.getLocation(), BlockDisplay.class);
@@ -295,22 +295,22 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                 boolean inArena = pl.getWorld().equals(arena.loc.getWorld()) && pl.getLocation().distanceSquared(arena.loc) <= (arena.radius*arena.radius);
                 if (inRange || inArena) bar.addPlayer(pl); else bar.removePlayer(pl);
             }
+            // Displays dem Boss folgen lassen
+            alignDisplays();
         }
-        // keep any visual displays following the boss
+        // Displays folgen lassen (keine Rekursion mehr!)
         void alignDisplays() {
             if (displays.isEmpty()) return;
             Location base = entity.getLocation();
             int i=0;
             for (var d : displays) {
                 if (d==null || d.isDead()) continue;
-                // simple offsets around entity
                 double offX = (i%3 - 1) * 0.8;
                 double offY = 0.6 + (i/3)*0.8;
                 double offZ = (i%2==0 ? 1 : -1) * 0.6;
                 d.teleport(base.clone().add(offX, offY, offZ));
                 i++;
             }
-            alignDisplays();
         }
         void remove() { bar.removeAll(); bar.setVisible(false); for (var d: displays) if (d!=null && !d.isDead()) d.remove(); displays.clear(); }
         void flashBar(BarColor c) {
@@ -355,7 +355,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
         void wingsParticles(LivingEntity caster) {
             Location c = caster.getLocation().add(0,1.3,0);
             World w = c.getWorld();
-            // left and right wing curves using simple parametric loop
             for (double t=0; t<=Math.PI; t+=Math.PI/20) {
                 double x = Math.sin(t)*0.8;
                 double y = Math.cos(t)*0.4;
@@ -377,7 +376,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             flashBar(BarColor.RED);
             Location c = caster.getLocation();
             c.getWorld().playSound(c, Sound.ENTITY_ZOMBIE_BREAK_WOODEN_DOOR, 1, 0.6f);
-            // expanding ring
             for (int i=0;i<20;i++) {
                 int step = i;
                 Bukkit.getScheduler().runTaskLater(WinterEventBosses.this, () -> {
@@ -409,7 +407,8 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             }
             Vector pull = caster.getLocation().toVector().subtract(target.getLocation().toVector()).normalize().multiply(speed).setY(0.4);
             target.setVelocity(pull);
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1, true, true, true));
+            // SLOWNESS statt SLOW (1.21)
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1, true, true, true));
         }
 
         void blizzard(Location center, int seconds, double radius) {
@@ -429,7 +428,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                         w.spawnParticle(Particle.SNOWFLAKE, new Location(w,x,y,z), 1, 0,0,0, 0);
                     }
                     for (Player p : playersNear(center, radius)) {
-                        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 2, true, true, true));
+                        p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 2, true, true, true)); // <- SLOWNESS
                         p.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS, 20, 0, true, true, true));
                         p.setFreezeTicks(Math.min(200, p.getFreezeTicks()+10));
                     }
@@ -455,7 +454,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                         w.spawnParticle(Particle.FALLING_WATER, sb.getLocation(), 2, 0.02,0.02,0.02, 0.01);
                         for (Player p : playersNear(sb.getLocation(), 1.3)) {
                             p.damage(3.0, entity);
-                            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 40, 1, true,true,true));
+                            p.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 40, 1, true,true,true)); // <- SLOWNESS
                         }
                     }
                 }.runTaskTimer(WinterEventBosses.this, 1L, 1L);
@@ -480,7 +479,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
                 snaps.add(new BlockStateSnapshot(b));
                 b.setType(Material.PACKED_ICE, false);
             }
-            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOW, 60, 3, true,true,true));
+            target.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 3, true,true,true)); // <- SLOWNESS
             target.setFreezeTicks(Math.min(260, target.getFreezeTicks()+120));
             new BukkitRunnable(){ @Override public void run(){ for (BlockStateSnapshot s : snaps) s.restore(); }}.runTaskLater(WinterEventBosses.this, 60L);
         }
@@ -537,7 +536,6 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             caster.teleport(to.clone().add(to.getDirection().multiply(-1)));
             caster.swingMainHand();
             to.getWorld().playSound(to, Sound.ENTITY_WITHER_SKELETON_AMBIENT, 1, 0.6f);
-            // slash arc
             for (double a=-Math.PI/2; a<=Math.PI/2; a+=Math.PI/16) {
                 Vector rot = to.getDirection().clone();
                 Vector right = new Vector(-rot.getZ(), 0, rot.getX());
