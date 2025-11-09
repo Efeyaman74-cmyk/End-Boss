@@ -1,7 +1,4 @@
-plugins {
-    id 'java'
-}
-
+plugins { id 'java' }
 group = 'com.mauli'
 version = '1.5.0'
 
@@ -15,11 +12,8 @@ dependencies {
 }
 
 java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(21)
-    }
+    toolchain { languageVersion = JavaLanguageVersion.of(21) }
 }
-
 tasks.withType(JavaCompile).configureEach {
     options.release = 21
     options.encoding = 'UTF-8'
