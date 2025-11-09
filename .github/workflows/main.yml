@@ -3,7 +3,7 @@ name: Build Plugin
 on:
   push:
     branches: ["main"]
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,17 +15,19 @@ jobs:
       - name: Set up JDK 21
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '21'
 
-      - name: Make Gradle Wrapper Executable
-        run: chmod +x ./gradlew
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: 8.7
 
-      - name: Build with Gradle
-        run: ./gradlew build --no-daemon --stacktrace --info
+      - name: Build Plugin
+        run: gradle build --no-daemon --info
 
       - name: Upload Plugin JAR
         uses: actions/upload-artifact@v4
         with:
-          name: End-Boss-1.5.0.jar
+          name: End-Boss-Plugin
           path: build/libs/*.jar
