@@ -516,7 +516,7 @@ public class WinterEventBosses extends JavaPlugin implements Listener {
             for (Player p : playersNear(c, radius)) {
                 Vector v = p.getLocation().toVector().subtract(c.toVector()).normalize().multiply(1.3).setY(0.6);
                 p.setVelocity(v);
-                p.addPotionEffect(new PotionEffect(PotionEffectType.CONFUSION, 60, 0, true,true,true));
+                p.addPotionEffect(new PotionEffect(PotionEffectType.NAUSEA, 60, 0, true, true, true));
             }
         }
 
